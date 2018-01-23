@@ -28,8 +28,9 @@ public class Client{
   JPanel mainPanel = new JPanel();
   JPanel buttonPanel = new JPanel();
   JLabel iconLabel = new JLabel();
+  JLabel statistic = new JLabel(); // statistic output
   ImageIcon icon;
-
+  
 
   //RTP variables:
   //----------------
@@ -56,6 +57,13 @@ public class Client{
   int RTSPSeqNb = 0; //Sequence number of RTSP messages within the session
   int RTSPid = 0; //ID of the RTSP session (given by the RTSP Server)
 
+// statistics
+  int packages_received = 0; // amount of packages received
+  int packages_lost = 0; // amount of packages los
+  int packages_restored = 0;
+  int lastSequencenumber = 0; // seqnr of last package receive
+  int lasttimestamp = 0;
+	
   final static String CRLF = "\r\n";
 
   //Video constants:
@@ -99,9 +107,11 @@ public class Client{
     mainPanel.setLayout(null);
     mainPanel.add(iconLabel);
     mainPanel.add(buttonPanel);
+    mainPanel.add(statistic);
     iconLabel.setBounds(0,0,380,280);
     buttonPanel.setBounds(0,280,380,50);
-
+    statistic.setBounds(0, 330, 500, 100);
+    
     f.getContentPane().add(mainPanel, BorderLayout.CENTER);
     f.setSize(new Dimension(390,370));
     f.setVisible(true);
@@ -357,9 +367,22 @@ class describeButtonListener implements ActionListener {
 	//create an RTPpacket object from the DP
 	RTPpacket rtp_packet = new RTPpacket(rcvdp.getData(), rcvdp.getLength());
 
+        if (rtp_packet.getpayloadtype() == 26) { // rtp
 	//print important header fields of the RTP packet received: 
 	System.out.println("Got RTP packet with SeqNum # "+rtp_packet.getsequencenumber()+" TimeStamp "+rtp_packet.gettimestamp()+" ms, of type "+rtp_packet.getpayloadtype());
 	
+        
+	// update statistics
+	packages_received++;
+	packages_lost += rtp_packet.getsequencenumber() - lastSequencenumber - 1;
+	lastSequencenumber = rtp_packet.getsequencenumber();
+
+        // print statistics
+	if (rtp_packet.gettimestamp() >= lasttimestamp + 1000) { //
+            print_statistic(rtp_packet.gettimestamp());
+            lasttimestamp = rtp_packet.gettimestamp();
+	}
+        }
 	//print header bitstream:
 	rtp_packet.printheader();
 
@@ -385,6 +408,18 @@ class describeButtonListener implements ActionListener {
     }
   }
 
+  public void print_statistic(int timestamp) {
+		double package_lost_rate = 100. * (double) (packages_lost) / (packages_received + packages_lost);
+		double package_rate = 1000. * (double) (packages_received) / timestamp;
+
+		String output = "";
+		output += String.format("Übertragenen Pakete: %d<br>", packages_received);
+		output += String.format("Verlorene Pakete: %d<br>", packages_lost);
+		output += String.format("Paketverlustrate: %.2f%%<br>", package_lost_rate);
+		output += String.format("Datenrate: %.2f Pakete/s<br>", package_rate);
+		output += String.format("Wiederhergestellte Pakete: %d<br>", packages_restored);
+		statistic.setText("<html>" + output + "</html>");
+	}
   //------------------------------------
   //Parse Server Response
   //------------------------------------

@@ -12,6 +12,7 @@ import java.util.*;
 import java.awt.event.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.Random;
 import javax.swing.*;
 import javax.swing.Timer;
 
@@ -28,7 +29,8 @@ public class Server extends JFrame implements ActionListener {
   //GUI:
   //----------------
   JLabel label;
-
+  JSlider lostRate;
+		
   //Video variables:
   //----------------
   int imagenb = 0; //image nb of the image currently transmitted
@@ -37,6 +39,7 @@ public class Server extends JFrame implements ActionListener {
   static int FRAME_PERIOD = 40; //Frame period of the video to stream, in ms
   static int VIDEO_LENGTH = 500; //length of the video in frames
 
+  private Random random	= new Random();
   Timer timer; //timer used to send the images at the video frame rate
   byte[] buf; //buffer used to store the images to send to the client 
 
@@ -91,7 +94,17 @@ public class Server extends JFrame implements ActionListener {
 
     //GUI:
     label = new JLabel("Send frame #        ", JLabel.CENTER);
-    getContentPane().add(label, BorderLayout.CENTER);
+    
+    lostRate = new JSlider();
+    lostRate.setMinimum(0);
+    lostRate.setMaximum(100);
+    lostRate.setValue(30);
+    lostRate.setMinorTickSpacing(10);
+    lostRate.setMajorTickSpacing(20);
+    lostRate.setPaintTicks(true);
+    lostRate.setPaintLabels(true);
+    getContentPane().add(label, BorderLayout.NORTH);
+    getContentPane().add(lostRate, BorderLayout.CENTER);
   }
           
   //------------------------------------
@@ -233,11 +246,9 @@ public class Server extends JFrame implements ActionListener {
 
 	  //send the packet as a DatagramPacket over the UDP socket 
 	  senddp = new DatagramPacket(packet_bits, packet_length, ClientIPAddr, RTP_dest_port);
-	  RTPsocket.send(senddp);
-
-	  //System.out.println("Send frame #"+imagenb);
-	  //print the header bitstream
-	  rtp_packet.printheader();
+          if (lostRate.getValue() < (new Random().nextFloat() * 100.)) {
+		RTPsocket.send(senddp);
+          }
 
 	  //update GUI
 	  label.setText("Send frame #" + imagenb);
