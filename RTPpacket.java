@@ -1,3 +1,6 @@
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+
 
 public class RTPpacket{
 
@@ -23,8 +26,6 @@ public class RTPpacket{
   //Bitstream of the RTP payload
   public byte[] payload;
   
-
-
   //--------------------------
   //Constructor of an RTPpacket object from header fields and payload bitstream
   //--------------------------
@@ -50,21 +51,35 @@ public class RTPpacket{
     //TO COMPLETE
     //.............
     //fill the header array of byte with RTP header fields
+    header[0] = (byte) (Version << 6);
+    header[0] = (byte) (header[0] | Padding << 5);
+    header[0] = (byte) (header[0] | Extension << 4);
+    header[0] = (byte) (header[0] | CC);
 
-    //header[0] = ...
-    // .....
- 
+    header[1] = (byte) (header[1] | Marker << 7);
+    header[1] = (byte) (header[1] | PayloadType);
 
-    //fill the payload bitstream:
-    //--------------------------
+    header[2] = (byte) (SequenceNumber >> 8);
+    header[3] = (byte) (SequenceNumber & 0xFF);
+
+    header[4] = (byte) (TimeStamp >> 24);
+    header[5] = (byte) (TimeStamp >> 16);
+    header[6] = (byte) (TimeStamp >> 8);
+    header[7] = (byte) (TimeStamp & 0xFF);
+
+    header[8] = (byte) (Ssrc >> 24);
+    header[9] = (byte) (Ssrc >> 16);
+    header[10] = (byte) (Ssrc >> 8);
+    header[11] = (byte) (Ssrc & 0xFF);
+
+    // fill the payload bitstream:
+    // --------------------------
     payload_size = data_length;
     payload = new byte[data_length];
 
-    //fill payload array of byte from data (given in parameter of the constructor)
-    //......
-
+    // fill payload array of byte from data (given in parameter of the constructor)
+	payload = Arrays.copyOfRange(data, 0, data_length);
     // ! Do not forget to uncomment method printheader() below !
-
   }
     
   //--------------------------
@@ -97,7 +112,8 @@ public class RTPpacket{
 	//interpret the changing fields of the header:
 	PayloadType = header[1] & 127;
 	SequenceNumber = unsigned_int(header[3]) + 256*unsigned_int(header[2]);
-	TimeStamp = unsigned_int(header[7]) + 256*unsigned_int(header[6]) + 65536*unsigned_int(header[5]) + 16777216*unsigned_int(header[4]);
+	TimeStamp = unsigned_int(header[7]) + 256*unsigned_int(header[6]) + 65536 
+                * unsigned_int(header[5]) + 16777216*unsigned_int(header[4]);
       }
  }
 
@@ -170,7 +186,7 @@ public class RTPpacket{
   public void printheader()
   {
     //TO DO: uncomment
-    /*
+    
     for (int i=0; i < (HEADER_SIZE-4); i++)
       {
 	for (int j = 7; j>=0 ; j--)
@@ -182,7 +198,7 @@ public class RTPpacket{
       }
 
     System.out.println();
-    */
+    
   }
 
   //return the unsigned value of 8-bit integer nb
